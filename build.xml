@@ -1,0 +1,28 @@
+<project name="BlinkyMetrics" default="build-agent-jar" basedir=".">
+
+    <property name="one-jar.dist.dir" value="${basedir}/Agent/lib/one-jar"/>
+    <import file="${one-jar.dist.dir}/one-jar-ant-task.xml" optional="true" />
+
+    <target name="build-agent-jar" >
+
+        <one-jar destfile="${basedir}/out/BlinkyMetricsAgent.jar">
+            <manifest>
+                <attribute name="One-Jar-Main-Class" value="BlinkyMetricsAgent"/>
+            </manifest>
+            <main>
+                <fileset dir="${basedir}/out/production/Agent"/>
+            </main>
+            <binlib>
+                <fileset file="${basedir}/Agent/lib/sigar/*.*" />
+            </binlib>
+            <lib>
+                <fileset file="${basedir}/Agent/lib/sigar.jar" />
+                <fileset file="${basedir}/Agent/lib/log4j.jar" />
+            </lib>
+        </one-jar>
+        <echo>
+            Now you can run the application with just:
+            $ java -jar BlinkyMetricsAgent.jar
+        </echo>
+    </target>
+</project>

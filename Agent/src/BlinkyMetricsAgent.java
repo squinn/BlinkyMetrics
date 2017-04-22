@@ -27,13 +27,12 @@ public class BlinkyMetricsAgent {
 
     @SuppressWarnings("InfiniteLoopStatement")
     private void start() {
-        System.out.println("Starting Blinky Agent...");
 
         final Sigar sigar;
         try {
             sigar = new Sigar();
             final Cpu[] cpus = sigar.getCpuList();
-            System.out.println("Detected " + cpus.length + " cpus/cores\n");
+            System.out.println("\nStarting blinky metrics agent monitoring of " + cpus.length + " cpus/cores\n");
         } catch (SigarException e) {
             System.err.println("Fatal error, unable to initialize sigar API.");
             e.printStackTrace();
@@ -48,7 +47,7 @@ public class BlinkyMetricsAgent {
             charsToErase = printCpuUsagePercentages(totalCpuUsagePercentage, cpuPercs, charsToErase);
 
             try {
-                Thread.sleep(200);
+                Thread.sleep(500);
             } catch (InterruptedException e) {
                 // Purposefully empty
             }
