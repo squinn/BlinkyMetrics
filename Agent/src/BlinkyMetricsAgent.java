@@ -1,12 +1,19 @@
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.hyperic.sigar.Cpu;
 import org.hyperic.sigar.CpuPerc;
 import org.hyperic.sigar.Sigar;
 import org.hyperic.sigar.SigarException;
+import org.json.JSONObject;
+
+import java.net.InetAddress;
 
 /**
  * Example command line:
  * <p>
- * java -classpath out/production/Agent;Agent/lib/sigar.jar -Djava.library.path=Agent/lib/sigar BlinkyMetricsAgent 192.168.5.100:8080
+ * java -classpath out/production/Agent;Agent/lib/* -Djava.library.path=Agent/lib/sigar BlinkyMetricsAgent 192.168.5.100:8080
  * <p>
  * Created by squinn on 4/21/2017.
  */
@@ -39,12 +46,22 @@ public class BlinkyMetricsAgent {
             return;
         }
 
+        final String hostName = getHostName();
+
         int charsToErase = 0;
         while (true) {
 
+            // Get the current metrics
             final double totalCpuUsagePercentage = getTotalCpuUsagePercentage(sigar);
             final CpuPerc[] cpuPercs = getCpuUsagePercentages(sigar);
             charsToErase = printCpuUsagePercentages(totalCpuUsagePercentage, cpuPercs, charsToErase);
+
+            // Convert metrics to JSON
+            final JSONObject json = new JSONObject();
+            json.put("hostName", hostName);
+
+            // Post to the server (if available)
+            charsToErase += postMetricsToServer(json);
 
             try {
                 Thread.sleep(500);
@@ -52,6 +69,31 @@ public class BlinkyMetricsAgent {
                 // Purposefully empty
             }
         }
+    }
+
+    private int postMetricsToServer(JSONObject json) {
+        try {
+            final CloseableHttpClient httpclient = HttpClients.createDefault();
+            final HttpPost httpPost = new HttpPost("http://" + serverAddress + "/metrics");
+            httpPost.setHeader("Content-type", "application/json");
+            httpPost.setEntity(new StringEntity(json.toString()));
+            httpclient.execute(httpPost);
+        } catch (Throwable t) {
+            return printString(" (Post Fail: " + t.getMessage() + ")");
+        }
+        return 0;
+    }
+
+    private String getHostName() {
+        String hostname = "Unknown";
+
+        try {
+            InetAddress addr = InetAddress.getLocalHost();
+            hostname = addr.getHostName();
+        } catch (Throwable t) {
+            System.err.println("Hostname can not be resolved");
+        }
+        return hostname;
     }
 
     private CpuPerc[] getCpuUsagePercentages(Sigar sigar) {
@@ -94,6 +136,7 @@ public class BlinkyMetricsAgent {
         System.out.print(str);
         return str.length();
     }
+
     private void eraseChars(int charsToErase) {
         // Erase what we printed last time in the loop
         for (int i = 0; i < charsToErase + 1; i++) {
