@@ -11,9 +11,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Example command line:
@@ -25,6 +24,7 @@ import java.util.Map;
 public class BlinkyMetricsServer {
 
     private static final int DEFAULT_PORT = 7272;
+    private static final long HOST_PRUNING_DELAY_MILLIS = 5000;
 
     public static void main(String[] args) {
         try {
@@ -40,6 +40,7 @@ public class BlinkyMetricsServer {
     private void start() throws Throwable {
         Server server = new Server(DEFAULT_PORT);
 
+        // Home page
         ServletHandler servletHandler = new ServletHandler();
         server.setHandler(servletHandler);
         servletHandler.addServletWithMapping(new ServletHolder(new HttpServlet() {
@@ -52,6 +53,7 @@ public class BlinkyMetricsServer {
             }
         }), "/");
 
+        // Posted metrics
         servletHandler.addServletWithMapping(new ServletHolder(new HttpServlet() {
             @Override
             protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -74,9 +76,30 @@ public class BlinkyMetricsServer {
         }), "/metrics");
 
         server.start();
-        server.join();
+
+        // Start a thread that will periodically prune the host list (to handle when hosts disconnect)
+        final Timer uploadCheckerTimer = new Timer(true);
+        uploadCheckerTimer.scheduleAtFixedRate(
+            new TimerTask() {
+                public void run() {
+                    final long currentTimeMillis = System.currentTimeMillis();
+                    final List<String> hostNamesToPurge = new ArrayList<>();
+                    for (Map.Entry<String, Metrics> entry : metricsPerHost.entrySet()) {
+                        if(currentTimeMillis - entry.getValue().lastUpdatedMillis > HOST_PRUNING_DELAY_MILLIS) {
+                            hostNamesToPurge.add(entry.getKey());
+                        }
+                    }
+                    for (String hostName : hostNamesToPurge) {
+                        System.out.println("Removing inactive host: " + hostName);
+                        metricsPerHost.remove(hostName);
+                    }
+
+                }
+            }, 0, 2 * 1000
+        );
 
         System.out.println("BlinkyMetricsServer started, and accepting connections on port: " + DEFAULT_PORT);
+        server.join();
 
     }
 
@@ -95,13 +118,14 @@ public class BlinkyMetricsServer {
         writer.println("</ol>");
     }
 
-    private Map<String, Metrics> metricsPerHost = new HashMap<>();
+    // Purposefully synchronized collection
+    private Map<String, Metrics> metricsPerHost = new ConcurrentHashMap<>();
 
     private void updateHostMetrics(JSONObject jsonObject) throws JSONException {
         final String hostName = jsonObject.getString("hostName");
 
         Metrics metrics = metricsPerHost.get(hostName);
-        if(metrics == null) {
+        if (metrics == null) {
             System.out.println("Registering new host: " + hostName);
             metrics = new Metrics();
             metricsPerHost.put(hostName, metrics);
