@@ -13,7 +13,8 @@ import java.net.InetAddress;
 /**
  * Example command line:
  * <p>
- * java -classpath out/production/Agent;Agent/lib/* -Djava.library.path=Agent/lib/sigar BlinkyMetricsAgent 192.168.5.100:8080
+ * java -classpath out/production/Agent;Agent/lib/* -Djava.library.path=Agent/lib/sigar BlinkyMetricsAgent 192.168.5.177:7272
+ * java -classpath out/artifacts/BlinkyMetricsAgent.jar -Djava.library.path=Agent/lib/sigar BlinkyMetricsAgent 192.168.5.177:7272
  * <p>
  * Created by squinn on 4/21/2017.
  */
