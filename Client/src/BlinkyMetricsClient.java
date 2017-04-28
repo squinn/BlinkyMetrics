@@ -21,9 +21,10 @@ import java.util.List;
  */
 public class BlinkyMetricsClient {
 
-    private static final int MAX_LIGHTS = 14;                               // Maximum number of lights on the Blinky LED device we want to control
     private static final int LED_FRAME_RATE_DELAY_MILLIS = 250;             // Number of milliseconds between LED frame updates
     private static final int STATUS_INDICATOR_LIGNT_DELAY_MILLIS = 750;     // Number of seconds between flashes of the status indicator light
+
+    private static final int[] VALID_LIGHT_INDEXES = new int[] {0,1,2,4,5,6,7,9,10,11,12,13};   // Which lights really work on our output device
 
     public static void main(String[] args) {
         if (args.length < 1) {
@@ -175,12 +176,13 @@ public class BlinkyMetricsClient {
                             statusIndicatorOnMillis = currentMillis;
                         }
                     } else {
+                        // The host metric information is current, so render their CPU levels on the LEDs
                         int i = 0;
                         for (Color ledColor : ledColors) {
-                            if(i + 1 >= MAX_LIGHTS) {
+                            if(i >= VALID_LIGHT_INDEXES.length) {
                                 break;
                             }
-                            blinkyFrameBuilder.withSpecificLightSetTo(i, ledColor);
+                            blinkyFrameBuilder.withSpecificLightSetTo(VALID_LIGHT_INDEXES[i], ledColor);
                             i++;
                         }
                     }
