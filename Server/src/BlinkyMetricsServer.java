@@ -12,7 +12,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 
 /**
  * Example command line:
@@ -24,7 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class BlinkyMetricsServer {
 
     private static final int DEFAULT_PORT = 7272;
-    private static final long HOST_PRUNING_DELAY_MILLIS = 5000;
+    private static final long HOST_PRUNING_DELAY_MILLIS = 5000;         // How often will we prune inactive agents/hosts
+    private static final long METRIC_UPDATE_DELAY_MILLIS = 500;         // How often will we send new metrics to the clients
 
     public static void main(String[] args) {
         try {
@@ -53,7 +54,7 @@ public class BlinkyMetricsServer {
             }
         }), "/");
 
-        // Posted metrics
+        // Post or retrieve
         servletHandler.addServletWithMapping(new ServletHolder(new HttpServlet() {
             @Override
             protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -73,6 +74,12 @@ public class BlinkyMetricsServer {
                     System.err.println("Received bad request: " + t.getMessage());
                 }
             }
+
+            @Override
+            protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+                startClientConnection(request, response);
+            }
+
         }), "/metrics");
 
         server.start();
@@ -85,7 +92,7 @@ public class BlinkyMetricsServer {
                     final long currentTimeMillis = System.currentTimeMillis();
                     final List<String> hostNamesToPurge = new ArrayList<>();
                     for (Map.Entry<String, Metrics> entry : metricsPerHost.entrySet()) {
-                        if(currentTimeMillis - entry.getValue().lastUpdatedMillis > HOST_PRUNING_DELAY_MILLIS) {
+                        if (currentTimeMillis - entry.getValue().lastUpdatedMillis > HOST_PRUNING_DELAY_MILLIS) {
                             hostNamesToPurge.add(entry.getKey());
                         }
                     }
@@ -101,6 +108,42 @@ public class BlinkyMetricsServer {
         System.out.println("BlinkyMetricsServer started, and accepting connections on port: " + DEFAULT_PORT);
         server.join();
 
+    }
+
+    private void startClientConnection(final HttpServletRequest request, final HttpServletResponse response) {
+
+        System.out.println("Client connected: " + request.getRemoteHost());
+        ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(1);
+
+        final ScheduledFuture scheduledFuture = scheduledExecutorService.scheduleAtFixedRate(
+            new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        response.getWriter().println("Boo");
+                        response.flushBuffer();
+                    } catch (IOException e) {
+                        // Client probably disconnected, so shut down the thread
+                        throw new RuntimeException(e);
+                    }
+                }
+            },
+            0,
+            METRIC_UPDATE_DELAY_MILLIS,
+            TimeUnit.MILLISECONDS
+        );
+
+        while (true) {
+            if (scheduledFuture.isCancelled() || scheduledFuture.isDone()) {
+                System.out.println("Client disconnected: " + request.getRemoteHost());
+                return;
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                // Purposefully empty
+            }
+        }
     }
 
     private void printHostSummary(PrintWriter writer) {

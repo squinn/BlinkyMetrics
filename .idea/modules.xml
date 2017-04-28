@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/Agent/Agent.iml" filepath="$PROJECT_DIR$/Agent/Agent.iml" />
       <module fileurl="file://$PROJECT_DIR$/BlinkyMetrics.iml" filepath="$PROJECT_DIR$/BlinkyMetrics.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Client/Client.iml" filepath="$PROJECT_DIR$/Client/Client.iml" />
       <module fileurl="file://$PROJECT_DIR$/Server/Server.iml" filepath="$PROJECT_DIR$/Server/Server.iml" />
     </modules>
   </component>
