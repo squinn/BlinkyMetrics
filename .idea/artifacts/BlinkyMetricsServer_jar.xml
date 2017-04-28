@@ -1,0 +1,15 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="BlinkyMetricsServer:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/</output-path>
+    <root id="archive" name="BlinkyMetricsServer_jar.jar">
+      <element id="module-output" name="Server" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Server/lib/jetty-util-9.2.21.v20170120.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Server/lib/jetty-server-9.2.21.v20170120.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Server/lib/servlet-api-3.1.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Server/lib/jetty-servlet-9.2.21.v20170120.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Server/lib/jetty-http-9.2.21.v20170120.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Server/lib/json-20160810.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Server/lib/jetty-io-9.2.21.v20170120.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

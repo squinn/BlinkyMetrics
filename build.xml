@@ -1,9 +1,18 @@
-<project name="BlinkyMetrics" default="build-agent-jar" basedir=".">
+<project name="BlinkyMetrics" default="build-agent-zip" basedir=".">
+
+    <target name="build-agent-zip">
+        <delete file="out/artifacts/BlinkyMetricsAgent.zip"/>
+        <zip destfile="out/artifacts/BlinkyMetricsAgent.zip">
+            <fileset file="out/artifacts/BlinkyMetricsAgent.jar"/>
+            <zipfileset dir="Agent/lib/sigar" includes="**" prefix="native"/>
+        </zip>
+    </target>
+
 
     <property name="one-jar.dist.dir" value="${basedir}/Agent/lib/one-jar"/>
-    <import file="${one-jar.dist.dir}/one-jar-ant-task.xml" optional="true" />
+    <import file="${one-jar.dist.dir}/one-jar-ant-task.xml" optional="true"/>
 
-    <target name="build-agent-jar" >
+    <target name="build-agent-one-jar">
 
         <one-jar destfile="${basedir}/out/BlinkyMetricsAgent.jar">
             <manifest>
@@ -13,11 +22,11 @@
                 <fileset dir="${basedir}/out/production/Agent"/>
             </main>
             <binlib>
-                <fileset file="${basedir}/Agent/lib/sigar/*.*" />
+                <fileset file="${basedir}/Agent/lib/sigar/*.*"/>
             </binlib>
             <lib>
-                <fileset file="${basedir}/Agent/lib/sigar.jar" />
-                <fileset file="${basedir}/Agent/lib/log4j.jar" />
+                <fileset file="${basedir}/Agent/lib/sigar.jar"/>
+                <fileset file="${basedir}/Agent/lib/log4j.jar"/>
             </lib>
         </one-jar>
         <echo>

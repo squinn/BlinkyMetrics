@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="BlinkyMetricsClient:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/</output-path>
+    <root id="archive" name="BlinkyMetricsClient.jar">
+      <element id="module-output" name="Client" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Client/lib/json-20160810.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Client/lib/jssc-2.8.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Client/lib/commons-logging-1.2.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Client/lib/httpcore-4.4.6.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/Client/lib/httpclient-4.5.3.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
