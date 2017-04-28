@@ -48,20 +48,31 @@ public class BlinkyMetricsAgent {
 
         final String hostName = getHostName();
 
-        int charsToErase = 0;
+        boolean connected = false;
         while (true) {
 
             // Get the current metrics
             final double totalCpuUsagePercentage = getTotalCpuUsagePercentage(sigar);
             final CpuPerc[] cpuPercs = getCpuUsagePercentages(sigar);
-            charsToErase = printCpuUsagePercentages(totalCpuUsagePercentage, cpuPercs, charsToErase);
+            // printCpuUsagePercentages(totalCpuUsagePercentage, cpuPercs);
 
             // Convert metrics to JSON
             final JSONObject json = new JSONObject();
             json.put("hostName", hostName);
+            json.put("cpuUsage", totalCpuUsagePercentage);
 
             // Post to the server (if available)
-            charsToErase += postMetricsToServer(json);
+            if(postMetricsToServer(json)) {
+                if(!connected) {
+                    System.out.println("Successfully connected to: " + serverAddress);
+                    connected = true;
+                }
+            } else {
+                if(connected) {
+                    System.out.println("Attempting to reconnect to: " + serverAddress);
+                    connected = false;
+                }
+            }
 
             try {
                 Thread.sleep(500);
@@ -71,7 +82,7 @@ public class BlinkyMetricsAgent {
         }
     }
 
-    private int postMetricsToServer(JSONObject json) {
+    private boolean postMetricsToServer(JSONObject json) {
         try {
             final CloseableHttpClient httpclient = HttpClients.createDefault();
             final HttpPost httpPost = new HttpPost("http://" + serverAddress + "/metrics");
@@ -79,9 +90,9 @@ public class BlinkyMetricsAgent {
             httpPost.setEntity(new StringEntity(json.toString()));
             httpclient.execute(httpPost);
         } catch (Throwable t) {
-            return printString(" (Post Fail: " + t.getMessage() + ")");
+            return false;
         }
-        return 0;
+        return true;
     }
 
     private String getHostName() {
@@ -114,11 +125,8 @@ public class BlinkyMetricsAgent {
         }
     }
 
-    private int printCpuUsagePercentages(double totalCpuUsagePercentage, CpuPerc[] cpuPercs, int charsToErase) {
-
-        // Erase what we printed last time in the loop
-        eraseChars(charsToErase);
-
+    @SuppressWarnings("unused")
+    private int printCpuUsagePercentages(double totalCpuUsagePercentage, CpuPerc[] cpuPercs) {
         int charsPrinted = 0;
         charsPrinted += printString("TOTAL: " + String.format("%3.0f%%", totalCpuUsagePercentage * 100.0) + ", ");
         for (int i = 0; i < cpuPercs.length; i++) {
@@ -137,6 +145,8 @@ public class BlinkyMetricsAgent {
         return str.length();
     }
 
+
+    @SuppressWarnings("unused")
     private void eraseChars(int charsToErase) {
         // Erase what we printed last time in the loop
         for (int i = 0; i < charsToErase + 1; i++) {

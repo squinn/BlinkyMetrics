@@ -2,6 +2,8 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -44,7 +46,7 @@ public class BlinkyMetricsClient {
                 connected = true;
                 String packet;
                 while ((packet = inputReader.readLine()) != null) {
-                    System.out.println("Got packet: " + packet);
+                    processPacket(packet);
                 }
             } catch (Throwable t) {
                 if(connected) {
@@ -57,6 +59,14 @@ public class BlinkyMetricsClient {
                     // Purposefully emtpy
                 }
             }
+        }
+    }
+
+    private void processPacket(String packet) {
+        final JSONObject jsonObject = new JSONObject(packet);
+        final JSONArray hosts = jsonObject.getJSONArray("hosts");
+        for(int i=0; i < hosts.length(); i++) {
+            System.out.println("Host " + (i + 1) + " CPU: " + String.format("%3.0f%%", hosts.getJSONObject(i).getDouble("cpuUsage") * 100.0));
         }
     }
 

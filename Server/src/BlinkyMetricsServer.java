@@ -1,6 +1,7 @@
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -120,7 +121,8 @@ public class BlinkyMetricsServer {
                 @Override
                 public void run() {
                     try {
-                        response.getWriter().println("Boo");
+                        final JSONObject jsonObject = buildMetricsJSON();
+                        response.getWriter().println(jsonObject.toString());
                         response.flushBuffer();
                     } catch (IOException e) {
                         // Client probably disconnected, so shut down the thread
@@ -133,6 +135,7 @@ public class BlinkyMetricsServer {
             TimeUnit.MILLISECONDS
         );
 
+        // Keep the response stream open until the client disconnects (this way we don't need to do polling in the client)
         while (true) {
             if (scheduledFuture.isCancelled() || scheduledFuture.isDone()) {
                 System.out.println("Client disconnected: " + request.getRemoteHost());
@@ -144,6 +147,20 @@ public class BlinkyMetricsServer {
                 // Purposefully empty
             }
         }
+    }
+
+    private JSONObject buildMetricsJSON() {
+        final JSONObject jsonObject = new JSONObject();
+        final JSONArray hosts = new JSONArray();
+        for (Map.Entry<String, Metrics> entry : metricsPerHost.entrySet()) {
+            final JSONObject hostJSONObject = new JSONObject();
+            hostJSONObject.put("hostName", entry.getKey());
+            hostJSONObject.put("lastUpdatedMillis", entry.getValue().lastUpdatedMillis);
+            hostJSONObject.put("cpuUsage", entry.getValue().cpuUsage);
+            hosts.put(hostJSONObject);
+        }
+        jsonObject.put("hosts", hosts);
+        return jsonObject;
     }
 
     private void printHostSummary(PrintWriter writer) {
@@ -174,6 +191,7 @@ public class BlinkyMetricsServer {
             metricsPerHost.put(hostName, metrics);
         }
         metrics.lastUpdatedMillis = System.currentTimeMillis();
+        metrics.cpuUsage = jsonObject.getDouble("cpuUsage");
 
     }
 
@@ -189,6 +207,7 @@ public class BlinkyMetricsServer {
 
     private class Metrics {
         long lastUpdatedMillis;
+        double cpuUsage;
     }
 
 }
