@@ -10,6 +10,7 @@ import java.awt.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.List;
 
 /**
  * Example command line:
@@ -20,7 +21,9 @@ import java.util.*;
  */
 public class BlinkyMetricsClient {
 
-    private static final int LED_FRAME_RATE_DELAY_MILLIS = 1000;  // Numbe of milliseconds between LED frame updates
+    private static final int MAX_LIGHTS = 14;                               // Maximum number of lights on the Blinky LED device we want to control
+    private static final int LED_FRAME_RATE_DELAY_MILLIS = 250;             // Number of milliseconds between LED frame updates
+    private static final int STATUS_INDICATOR_LIGNT_DELAY_MILLIS = 750;     // Number of seconds between flashes of the status indicator light
 
     public static void main(String[] args) {
         if (args.length < 1) {
@@ -120,20 +123,71 @@ public class BlinkyMetricsClient {
             return true;
         }
 
+        private long lastMetricsUpdatedMillis = 0;
+
+
+
         void updateLeds(Map<String, Metrics> metricsPerHost) {
             try {
+                lastMetricsUpdatedMillis = System.currentTimeMillis();
+
+                final List<Color> newLedColors = new ArrayList<>();
+                for (Map.Entry<String, Metrics> entry : metricsPerHost.entrySet()) {
+                    final double cpuUsage = entry.getValue().cpuUsage;
+                    newLedColors.add(new Color((float)cpuUsage, 1.0f - (float)cpuUsage, 0.0f));
+                }
+                currentLedColors = newLedColors;
+
             } catch (Throwable t) {
                 System.err.println("Unable to update Blinky leds: " + t.getMessage());
                 t.printStackTrace();
             }
-
         }
 
-        boolean connected = false;
+
+        private long statusIndicatorOnMillis = 0;
+        private boolean connected = false;
+        private List<Color> currentLedColors = new ArrayList<>();
 
         private void drawCurrentFrame() {
             if (checkBlinkyConnection() && blinkyTapeController != null) {
                 try {
+
+                    final BlinkyFrameBuilder blinkyFrameBuilder = new BlinkyFrameBuilder()
+                            .withAllLightsSetTo(Color.BLACK);
+
+                    final long currentMillis = System.currentTimeMillis();
+                    final List<Color> ledColors = currentLedColors;
+
+                    // If no hosts are reporting in, then just blink a light to show if we're connected to the server or not
+                    if(currentMillis - lastMetricsUpdatedMillis > 2000) {
+                        ledColors.clear();
+                    }
+                    if(ledColors.size() <= 0) {
+                        if (currentMillis - statusIndicatorOnMillis > STATUS_INDICATOR_LIGNT_DELAY_MILLIS) {
+                            if (currentMillis - lastMetricsUpdatedMillis > 1000) {
+                                blinkyFrameBuilder
+                                        .withSpecificLightSetTo(0, Color.RED);
+                            } else {
+                                blinkyFrameBuilder
+                                        .withSpecificLightSetTo(0, Color.GREEN);
+                            }
+                            statusIndicatorOnMillis = currentMillis;
+                        }
+                    } else {
+                        int i = 0;
+                        for (Color ledColor : ledColors) {
+                            if(i + 1 >= MAX_LIGHTS) {
+                                break;
+                            }
+                            blinkyFrameBuilder.withSpecificLightSetTo(i, ledColor);
+                            i++;
+                        }
+                    }
+
+                    blinkyTapeController.renderFrame(blinkyFrameBuilder.build());
+
+                    /*
                     blinkyTapeController.renderFrame(new BlinkyFrameBuilder()
                             .withAllLightsSetTo(Color.BLACK)
                             .withSpecificLightSetTo(0, Color.RED)
@@ -151,20 +205,21 @@ public class BlinkyMetricsClient {
                             .withSpecificLightSetTo(12, Color.MAGENTA)
                             .withSpecificLightSetTo(13, Color.PINK).build()
                     );
+                    */
 
-                    if(!connected) {
+                    if (!connected) {
                         System.out.println("Found connection to Blinky device");
                         connected = true;
                     }
 
-                } catch(Throwable t) {
+                } catch (Throwable t) {
 
-                    if(connected) {
+                    if (connected) {
                         System.out.println("Blinky device appears to have disconnected");
                         connected = true;
                     }
 
-                    if(blinkyTapeController != null) {
+                    if (blinkyTapeController != null) {
                         blinkyTapeController.close();
                     }
                     blinkyTapeController = null;
